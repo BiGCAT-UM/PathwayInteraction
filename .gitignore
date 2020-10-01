@@ -39,5 +39,5 @@ vignettes/*.pdf
 .Renviron
 
 # Data files
-.rda
-.csv
+/data/*.rda
+/data/*.csv
