@@ -13,8 +13,8 @@ for (one_name in candidate_wp){
                                    WEIGHT_THRESHOLD=0.9,
                                    print_path = FALSE)
   # full_res_score is used to calculate overall distribution of path scores
-  print(paste("pathway score of", one_name))
-  print(one_res[[2]])
+  #print(paste("pathway score of", one_name))
+  # print(one_res[[2]])
   if (length(one_res[[1]])>0){
     full_res_score[[(length(full_res_score)+1)]] <- one_res[[1]]
     one_path_df <- filterPath(one_res)
