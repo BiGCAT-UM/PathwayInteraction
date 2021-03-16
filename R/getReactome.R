@@ -1,7 +1,6 @@
 # getReactome.R
 # download reactome pathway information and return 
 
-library(dplyr)
 library(SPARQL)
 ENDPOINT <- "http://sparql.wikipathways.org/sparql"
 OPTIONS <- NULL
@@ -13,35 +12,36 @@ SPARQL_PREFIX <- paste("PREFIX dc: <http://purl.org/dc/elements/1.1/>
                   ")
 
 #### Use below if want to query all approved pathway titles and wpids
-# reactome_query <- paste(SPARQL_PREFIX,
-#                         "SELECT DISTINCT ?pathwayRef (str(?titleLit) as ?title) (str(?wpidIdentifier) as ?wpid)
-#   WHERE {
-#   ?pathwayRef wp:ontologyTag cur:Reactome_Approved ;
-#            dc:title ?titleLit ;
-#            dcterms:identifier ?wpidIdentifier .
-#   }")
-# 
-# reactome_pathways <- SPARQL(ENDPOINT,
-#                             reactome_query,
-#                             ns=SPARQL_PREFIX,
-#                             extra=OPTIONS
-#                             )$results
-###
+reactome_query <- paste(SPARQL_PREFIX,
+                        "SELECT DISTINCT ?pathwayRef (str(?titleLit) as ?title) (str(?wpidIdentifier) as ?wpid)
+  WHERE {
+  ?pathwayRef wp:ontologyTag cur:Reactome_Approved ;
+           dc:title ?titleLit ;
+           dcterms:identifier ?wpidIdentifier .
+  }")
+
+reactome_pathways <- SPARQL(ENDPOINT,
+                            reactome_query,
+                            ns=SPARQL_PREFIX,
+                            extra=OPTIONS
+                            )$results
+reactome_wpid <- reactome_pathways$wpid
+##
 
 # WP_DIR declared in main.R
-#WP_DIR <- "~/Desktop/BiGCAT/project_22q11ds/microarray_analysis/pathway_interaction/data/pathway_Feb2021/"
-REACTOME_DIR <- file.path(WP_DIR, "Reactome_Homo_sapiens_Curation-Reactome_Approved__gpml_ver75")
-rt_files <- list.files(REACTOME_DIR)
-reactome_pathways <- sapply(rt_files, getSplit)
-names(reactome_pathways) <- NULL
+# WP_DIR <- "~/Desktop/BiGCAT/project_22q11ds/microarray_analysis/pathway_interaction/data/pathway_Feb2021/"
+# REACTOME_DIR <- file.path(WP_DIR, "Reactome_Homo_sapiens_Curation-Reactome_Approved__gpml_ver75")
+# rt_files <- list.files(REACTOME_DIR)
+# reactome_pathways <- sapply(rt_files, getSplit)
+# names(reactome_pathways) <- NULL
 
 reactome_pathway_list <- list()
 no_node_pathway <- NULL
 # load Protein/geneProduct/RNA for each pathway
 # if no data retrieved: add to a list
-for (pathway_index in 1:length(reactome_pathways)){
+for (pathway_index in 1:length(reactome_wpid)){
   if (pathway_index %% 100 == 0){print(pathway_index)}
-  pathway_wpid <- reactome_pathways[pathway_index]
+  pathway_wpid <- reactome_wpid[pathway_index]
   one_pathway_query <- paste(SPARQL_PREFIX,
                              "SELECT DISTINCT 
     (str(?wpidIdentifier) as ?wpid) 
@@ -66,6 +66,8 @@ for (pathway_index in 1:length(reactome_pathways)){
                         ns=SPARQL_PREFIX,
                         extra=OPTIONS
                         )$results
+  one_pathway$entrez <- gsub("/","",one_pathway$entrez)
+  one_pathway$ensembl <- gsub("/","",one_pathway$ensembl)
 
   reactome_pathway_list[[pathway_index]] <- one_pathway
   if (nrow(one_pathway)==0){
@@ -73,10 +75,7 @@ for (pathway_index in 1:length(reactome_pathways)){
   }
 }
 reactome_pathway_df <- do.call(rbind, reactome_pathway_list)
-# reactome_pathway_extended <- merge(x=reactome_pathway_df,
-#                                    y=reactome_pathways,
-#                                    by="wpid",
-#                                    all.x=TRUE)
+
 reactome2gene <- unique(reactome_pathway_df %>% dplyr::select(wpid, entrez))
 colnames(reactome2gene) <- c("wpid", "gene")
 reactome2name <- unique(reactome_pathway_df %>% dplyr::select(wpid, title))
