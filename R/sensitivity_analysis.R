@@ -7,47 +7,85 @@
 #############################
 ## Change pathway threshold
 ############################
-# Change threshold from 0.8 -> 1.8, to see what happens
+library(foreach)
+library(doParallel)
+library(parallel)
+numCores <- detectCores()-2
+numCores
+registerDoParallel(numCores)  # use multicore, set to the number of our cores
 
-thresh_score_sum <- numeric()
-all_res_scores <- list()
+
 threshold_range <- seq(0.9, 1.8, 0.1)
+g <- neuro_g
+thresh_score_sum <- numeric()
 candidate_wp <- wpid2name[wpid2name$wpid != "WP4657",]$wpid
 wp_list <- candidate_wp
 for (thresh in threshold_range){
-  res_score <- list()
-  # thresh==1.0 means, the result for thresh==0.9 was obtained.
-  # we use this as the criterion
+  #res_score <- list()
+  # We'll only use pathways having a significant path for thresh==0.9.
+  # Update and fix wp_list accordingly, starting from thresh==1.0
   if (thresh == 1.0){
-    wp_list <- unique(unlist(sapply(all_res_scores[[1]], names)))
+    wp_list <- one_names
   }
-  count <- 0
-  for (one_name in wp_list){
-    count <- count + 1
-    print(paste("We are at threshold", thresh, " and pathway count", count))
-    one_res <- calculatePathwayScore(input_g=nonneuro_g,
+  reses <- foreach (one_name=wp_list) %dopar% {
+    one_res <- calculatePathwayScore(input_g=g,
                                      another_pathway_node=one_name,
-                                     WEIGHT_THRESHOLD=thresh)
-    # res_score is used to calculate overall distribution of path scores
-    if (length(one_res[[1]])>0){
-      res_score[[(length(res_score)+1)]] <- one_res[[1]]
-    }
+                                     WEIGHT_THRESHOLD=thresh,
+                                     print_path = FALSE)
   }
-  one_sum <- sum(sapply(res_score, function(x) sum(1/x)))
-  all_res_scores[[(length(all_res_scores)+1)]] <- res_score
-  print(paste("The score sum is:", one_sum))
-  thresh_score_sum <- c(thresh_score_sum, one_sum)
+  one_sums <- unlist(lapply(reses, function(x) if (length(x[[1]])>0) return(sum(1/x[[1]]))))
+  one_names <- unlist(lapply(reses, function(x) if (length(x[[1]])>0) return(names(x[[1]])[1])))
+  print(paste("threshold is", thresh))
+  print(paste("The score sum is:", sum(one_sums)))
+  thresh_score_sum <- c(thresh_score_sum, sum(one_sums))
+}
+neuro_thresh_score_sum <- thresh_score_sum
+
+g <- nonneuro_g
+thresh_score_sum <- numeric()
+candidate_wp <- wpid2name[wpid2name$wpid != "WP4657",]$wpid
+wp_list <- candidate_wp
+for (thresh in threshold_range){
+  #res_score <- list()
+  # We'll only use pathways having a significant path for thresh==0.9.
+  # Update and fix wp_list accordingly, starting from thresh==1.0
+  if (thresh == 1.0){
+    wp_list <- one_names
+  }
+  reses <- foreach (one_name=wp_list) %dopar% {
+    one_res <- calculatePathwayScore(input_g=g,
+                                     another_pathway_node=one_name,
+                                     WEIGHT_THRESHOLD=thresh,
+                                     print_path = FALSE)
+  }
+  one_sums <- unlist(lapply(reses, function(x) if (length(x[[1]])>0) return(sum(1/x[[1]]))))
+  one_names <- unlist(lapply(reses, function(x) if (length(x[[1]])>0) return(names(x[[1]])[1])))
+  print(paste("threshold is", thresh))
+  print(paste("The score sum is:", sum(one_sums)))
+  thresh_score_sum <- c(thresh_score_sum, sum(one_sums))
+}
+nonneuro_thresh_score_sum <- thresh_score_sum
+
+# sensitivity_scores <- list(neuro_thresh_score_sum, nonneuro_thresh_score_sum)
+# save(sensitivity_scores, file=file.path(RESULT_DIR, "sensitivity_scores.rda"))
+
+splitVecSum <- function(inp_vec, n){
+  # Split inp_vec into
+  # equl lengths of n
+  num_subvec <- length(inp_vec)/n
+  vec_list <- lapply(seq(0, num_subvec-1), function(x) return(inp_vec[(x*n+1):((x+1)*n)]))
+  return (vec_list)
 }
 
-# nonneuro_g_scores <- all_res_scores
-# nonneuro_thresh_score_sum <- thresh_score_sum
-# save(nonneuro_g_scores, file=file.path(DATA_DIR, "nonneuro_g_scores.rda"))
-# neuro_g_scores <- all_res_scores
-# neuro_thresh_score_sum <- thresh_score_sum
-# save(neuro_g_scores, file=file.path(DATA_DIR, "neuro_g_scores.rda"))
-#all_g_scores <- all_res_scores
+neuro_thresh_score_list <- splitVecSum(neuro_thresh_score_sum, 167)
+neuro_sensitivity_sum <- unlist(lapply(neuro_thresh_score_list, sum))
+
+nonneuro_thresh_score_list <- splitVecSum(nonneuro_thresh_score_sum, 255)
+nonneuro_sensitivity_sum <- unlist(lapply(nonneuro_thresh_score_list, sum))
 
 compare_sensitivity <- data.frame(val=threshold_range,
-                                  neuro_score=neuro_thresh_score_sum,
-                                  nonneuro_score=nonneuro_thresh_score_sum)
+                                  neuro_score=neuro_sensitivity_sum,
+                                  nonneuro_score=nonneuro_sensitivity_sum)
 write.csv(compare_sensitivity, file.path(RESULT_DIR, "compare_sensitivity.csv"), row.names = F)
+
+stopImplicitCluster()

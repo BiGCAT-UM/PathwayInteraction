@@ -1,6 +1,13 @@
 # functions.R
 # Functions used for path
 
+# functions to parse file names of Reactome/WikiPathway files
+getSplit <- function(x){
+  val <- unlist(strsplit(x, "_"))
+  return (tail(val, 2)[1])
+}
+
+
 runLimma <- function(df, df_info, dep_var){
   # Run limma, summarize result by 
   # calculating median of logFC per each Entrez ID.
@@ -222,19 +229,19 @@ getDesc <- function(one_row, path_info){
 }
 
 getEdgeName <- function(one_name,
-                        wpid_info=wpid2name,
-                        node_info=orig_node_df){
-  # get HGNC symbol for entrez and return
+                        wpids,
+                        node_info){
+  # return HGNC symbol of entrez ('one_name'). 
   # if it is WPID, return as it is
-  if (one_name %in% wpid_info$wpid) return(one_name)
-  else return(node_info[node_info$name==one_name,]$hgnc_symbol)
+  if (one_name %in% wpids) return(one_name)
+  else return(node_info[node_info$name==one_name,]$hgnc_symbol[1])
 }
-
 
 getOneRowName <- function(one_row){
   # Run getEdgeName for each row
-  return(sapply(one_row, function(x) getEdgeName(one_name=x)))
-}
+  return(sapply(one_row,
+                function(x) getEdgeName(one_name=x, wpids=wpid2name$wpid, node_info=orig_node_df)))
+  }
 
 
 
@@ -256,9 +263,7 @@ preparePathViz <- function(input_edge_df,
   res_g <- graph_from_data_frame(edge_df,
                                  directed=TRUE,
                                  vertices=node_df)
+  undirect_res_g <- as.undirected(res_g, mode="collapse")
   return(res_g)
 }
 
-
-s <- table(edge_df$source)
-s[order(s, decreasing=TRUE)]
