@@ -1,33 +1,29 @@
 # pw_ora.R
 # Pathway over-representation analysis
 
-sub_limma <- subset(all_limma, weight <= 0.9 & weight >= 0.899)
-# hist(abs(sub_limma$logFC))
-# hist(sub_limma$P.Value)
-summary(abs(sub_limma$logFC))
-# [1] 0.1311532
-max(sub_limma$P.Value)
-# [1] 0.05379499
+# sub_limma <- subset(all_limma, weight <= 0.9 & weight >= 0.899)
+# # hist(abs(sub_limma$logFC))
+# # hist(sub_limma$P.Value)
+# summary(abs(sub_limma$logFC))
+# # [1] 0.1311532
+# max(sub_limma$P.Value)
+# # [1] 0.05379499
 
 # neuro_limma 
-sub_neuro_limma <- subset(neuro_limma, weight <= 0.90 & weight >= 0.899)
-summary(abs(sub_neuro_limma$logFC))
-max(sub_neuro_limma$P.Value)
+# sub_neuro_limma <- subset(neuro_limma, weight <= 0.90 & weight >= 0.899)
+# summary(abs(sub_neuro_limma$logFC))
+# max(sub_neuro_limma$P.Value)
+# # 
 # 
+# # nonneuro_limma
+# sub_nonneuro_limma <- subset(nonneuro_limma, weight <= 0.9 & weight >= 0.8999)
+# summary(abs(sub_nonneuro_limma$logFC))
+# max(sub_nonneuro_limma$P.Value)
 
-# nonneuro_limma
-sub_nonneuro_limma <- subset(nonneuro_limma, weight <= 0.9 & weight >= 0.8999)
-summary(abs(sub_nonneuro_limma$logFC))
-max(sub_nonneuro_limma$P.Value)
-
-## TODO: reasoning, overall, maximum of p-value and top 25% of abs(logFC)
-# also, the number of genes chosen: 
-# > nrow(sub_neuro_limma)
-# [1] 185
 nrow(subset(neuro_limma, P.Value<0.05 & abs(logFC)>=0.15))
+nrow(subset(neuro_limma, P.Value<0.05 & logFC>=0.15))
 nrow(subset(nonneuro_limma, P.Value<0.05 & abs(logFC)>=0.15))
-# > nrow(sub_nonneuro_limma)
-# [1] 132
+nrow(subset(nonneuro_limma, P.Value<0.05 & logFC>=0.15))
 
 # Direct gene analysis
 library(data.table)
@@ -37,7 +33,7 @@ schizo_df <- subset(disgenet_df, tolower(diseaseName)=="schizophrenia")
 autism_df <- subset(disgenet_df, tolower(diseaseName)=="autistic disorder")
 psycho_df <- subset(disgenet_df, tolower(diseaseName)=="psychotic disorders")
 
-total_neuro_genes <- union(union(schizo_df$geneId,autism_df$geneId),psycho_df$geneId)
+total_neuro_genes <- union(union(schizo_df$geneId,autism_df$geneId), psycho_df$geneId)
 # all_neuro_genes <- union(union(subset(schizo_df, score>=0.4)$geneId,
 #                                subset(autism_df, score>=0.4)$geneId),
 #                          subset(psycho_df, score>=0.4)$geneId)
@@ -86,16 +82,7 @@ excl_df <- excl_df[order(excl_df$num_gene, excl_df$norm_val, decreasing=T),]
 
 
 excl_genes
-# x <- readLines(file.path(DATA_DIR, "curated_gene_disease_associations.tsv"))
-# 
-# k <- sapply(strsplit(x, "\t"), length)
-# for (one_row in x){
-#   val <-unlist(strsplit(one_row, "\t"))
-#   if (length(val)!=16) {
-#     print(paste("Error! There are", length(val), "elements"))
-#     print(val)
-#   }
-# }
+
 ######################################################
 # over-representation analysis
 
@@ -175,6 +162,10 @@ performORA <- function(limma_df, min_positive=1, sig_genes=NULL){
 excl_neuro_ora <- performORA(limma_df=neuro_limma, min_positive=1, sig_genes=excl_entrez)
 out_nonneuro_ora <- performORA(limma_df=nonneuro_limma, min_positive=1, sig_genes=out_entrez)
 
+excl_neuro_limma <- subset(neuro_limma, entrez_id %in% excl_entrez)
+
+
+
 ## TODO: Create a network of pathways that have 2 or more genes.
 # We'll need pathway description as label in the resulting Cytoscape visualization
 # genes within the same pathways are connected. 
@@ -197,111 +188,3 @@ RCy3::createNetworkFromIgraph(ora_g,
                               collection = "Filtered Network with threshold 1.4 (for Paper)")
 RCy3::loadTableData(neuro_limma, data.key.column = "ensembl_id", table.key.column = "ensembl_id")
 
-
-## TODO: regular ORA; ideally it will be confirmed by PathVisio. 
-neuro_ora <- performORA(limma_df=neuro_limma, min_positive=3, sig_genes=NULL)
-nonneuro_ora <- performORA(limma_df=nonneuro_limma, min_positive=3, sig_genes=NULL)
-
-
-
-# # IMPORTANT: Check how many neuro genes have top ORA pathways 
-# # Based on DisGeNet score cut>=0.4
-# for (i in seq(1:10)){
-#   one_wpid <- neuro_ora[i,]$wpid
-#   one_gene_set <- subset(wpid2gene, wpid==one_wpid)$gene
-#   print(one_wpid)
-#   print(length(intersect(all_neuro_genes, one_gene_set)))
-#   print(length(intersect(all_neuro_genes, one_gene_set))/length(one_gene_set))
-# }
-
-
-
-# write.csv(neuro_ora, file.path(RESULT_DIR, "manual_neuro_ora.csv"))
-# write.csv(nonneuro_ora, file.path(RESULT_DIR, "manual_nonneuro_ora.csv"))
-
-
-
-
-# sig_neuro_genes <- subset(neuro_limma, P.Value<0.05 & abs(logFC)>=0.15)$hgnc_symbol
-# sig_nonneuro_genes <- subset(nonneuro_limma, P.Value<0.05 & abs(logFC)>=0.15)$hgnc_symbol
-# neuro_only_genes <- setdiff(sig_neuro_genes, sig_nonneuro_genes)
-# 
-# 
-# performORA(limma_df = subset(neuro_limma, hgnc_symbol %in% neuro_only_genes))
-# 
-# 
-# #TODO: clusterProfiler, conduct over-representation anlaysis
-# up_limma <- subset(s, logFC<0)
-# down_limma <- subset(s, logFC>=0)
-# 
-# 
-# ewp.up <- clusterProfiler::enricher(
-#   up_limma$entrez_id,
-#   universe = limma_result$entrez_id,
-#   #pAdjustMethod = "fdr",
-#   #pvalueCutoff = 0.1, #p.adjust cutoff; relaxed for demo purposes
-#   TERM2GENE = wpid2gene,
-#   TERM2NAME = wpid2name)
-# ewp.up <- DOSE::setReadable(ewp.up, org.Hs.eg.db, keyType = "ENTREZID")
-# head(as.data.frame(ewp.up))
-# 
-# ewp.down <- clusterProfiler::enricher(
-#   down_limma$entrez_id,
-#   universe = limma_result$entrez_id,
-#   #pAdjustMethod = "fdr",
-#   #pvalueCutoff = 0.1, #p.adjust cutoff; relaxed for demo purposes
-#   TERM2GENE = wpid2gene,
-#   TERM2NAME = wpid2name)
-# ewp.down <- DOSE::setReadable(ewp.down, org.Hs.eg.db, keyType = "ENTREZID")
-# head(as.data.frame(ewp.down))
-# 
-# 
-# ewp.all <- clusterProfiler::enricher(
-#   gene = s$entrez_id,
-#   universe = limma_result$entrez_id,
-#   pAdjustMethod = "none",
-#   pvalueCutoff = 1, #p.adjust cutoff; relaxed for demo purposes
-#   TERM2GENE = wpid2gene,
-#   TERM2NAME = wpid2name)
-# ewp.all <- DOSE::setReadable(ewp.all, org.Hs.eg.db, keyType = "ENTREZID")
-# head(as.data.frame(ewp.all))
-# 
-# #############################################################################
-# ######################################################
-# # Gene Set Enrichment Analysis
-# limma_res <- subset(neuro_limma, hgnc_symbol %in% neuro_only_genes)
-# limma_res <- limma_res[!duplicated(limma_res$entrez_id),]
-# 
-# 
-# limma_res$fcsign <- sign(limma_res$logFC)
-# limma_res$logfdr <- -log10(limma_res$P.Value)
-# # Below is used.. signed logfdr
-# limma_res$sig <- limma_res$logfdr * limma_res$fcsign
-# res_sig <- limma_res$sig
-# names(res_sig) <- limma_res$entrez_id
-# res_sig <- sort(res_sig, decreasing=TRUE)
-# 
-# gwp.sig.lung.expr <- clusterProfiler::GSEA(
-#   res_sig,
-#   pAdjustMethod = "none",
-#   pvalueCutoff = 1, #p.adjust cutoff
-#   TERM2GENE = wpid2gene,
-#   TERM2NAME = wpid2name)
-# gwp.sig.lung.expr.df = data.frame(ID=gwp.sig.lung.expr$ID,
-#                                   Description=gwp.sig.lung.expr$Description,
-#                                   enrichmentScore=gwp.sig.lung.expr$enrichmentScore,
-#                                   NES=gwp.sig.lung.expr$NES,
-#                                   pvalue=gwp.sig.lung.expr$pvalue,
-#                                   p.adjust=gwp.sig.lung.expr$p.adjust,
-#                                   rank=gwp.sig.lung.expr$rank,
-#                                   leading_edge=gwp.sig.lung.expr$leading_edge
-# )
-# enrich_wp_up <- subset(gwp.sig.lung.expr.df, NES>1) #pathways enriched for upregulated genes
-# enrich_wp_down <- subset(gwp.sig.lung.expr.df, NES<(-1)) #pathways enriched for downregulated genes
-# enrich_wp <- subset(gwp.sig.lung.expr.df, abs(NES)>1) #pathways enriched for significantly regulated genes
-# 
-# summary(enrich_wp)
-# enrich_wp[,c(1,2,5)]
-# 
-# #write.csv(enrich_wp, file.path(RESULT_DIR, "gsea_neuro_limma.csv"), row.names = FALSE)
-# #write.csv(enrich_wp, file.path(RESULT_DIR, "gsea_nonneuro_limma.csv"), row.names = FALSE)

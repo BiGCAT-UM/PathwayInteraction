@@ -1,11 +1,11 @@
 # collect_final_result.R
 # Collect final results (path and filtered pathway list)
 sel_paths_list <- list()
-for (one_name in sel_val){
+for (one_name in sel_wp){
   one_res <- calculatePathwayScore(input_g=g,
                                    another_pathway_node=one_name,
                                    WEIGHT_THRESHOLD=1.4,
-                                   print_path = TRUE)
+                                   print_path = FALSE)
   one_path_df <- filterPath(one_res)
   sel_paths_list[[(length(sel_paths_list)+1)]] <- one_path_df
 }
