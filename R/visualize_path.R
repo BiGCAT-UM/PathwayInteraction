@@ -8,7 +8,7 @@ interaction_g <- preparePathViz(input_edge_df=sel_path_df,
 RCy3::cytoscapePing()
 RCy3::createNetworkFromIgraph(interaction_g,
                               title = paste("All", one_prefix, "Network (with pathways)"),
-                              collection = "Filtered Network with threshold 1.4 (for Paper), 14 Feb 2021")
+                              collection = "Filtered Network with threshold")
 toggleGraphicsDetails()
 # load data (limma_result needs to be specified)
 RCy3::loadTableData(limma_result, data.key.column = "ensembl_id", table.key.column = "ensembl")
@@ -20,7 +20,7 @@ nodes_to_remove <- names(wp_to_rm)[names(wp_to_rm) != "WP4657"]
 interaction_subg <- delete_vertices(interaction_g, nodes_to_remove)
 RCy3::createNetworkFromIgraph(interaction_subg,
                               title = paste("Gene-only", one_prefix, "Network (without pathways)"),
-                              collection = "Filtered Network with threshold 1.4 (for Paper), 14 Feb 2021")
+                              collection = "Filtered Network with threshold")
 toggleGraphicsDetails()
 setNodeLabelMapping(table.column="name", network = paste("Gene-only", one_prefix, "Network (without pathways)"))
 RCy3::loadTableData(limma_result, data.key.column = "ensembl_id", table.key.column = "ensembl")
