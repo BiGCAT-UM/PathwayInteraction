@@ -244,7 +244,6 @@ getOneRowName <- function(one_row){
   }
 
 
-
 preparePathViz <- function(input_edge_df,
                            orig_node_df,
                            pathway_info){
