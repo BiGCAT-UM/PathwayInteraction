@@ -237,10 +237,10 @@ getEdgeName <- function(one_name,
   else return(node_info[node_info$name==one_name,]$hgnc_symbol[1])
 }
 
-getOneRowName <- function(one_row){
+getOneRowName <- function(one_row, orig_df){
   # Run getEdgeName for each row
   return(sapply(one_row,
-                function(x) getEdgeName(one_name=x, wpids=wpid2name$wpid, node_info=orig_node_df)))
+                function(x) getEdgeName(one_name=x, wpids=wpid2name$wpid, node_info=orig_df)))
   }
 
 
@@ -248,8 +248,11 @@ preparePathViz <- function(input_edge_df,
                            orig_node_df,
                            pathway_info){
   # Create a graph based on input_edge_df
+  # The original input_edge_df consists of Entrez IDs,
+  # so for better visualization
+  # it is converted into HGNC symbols. 
   path_edge_df <- input_edge_df[!duplicated(input_edge_df),]
-  path_edge_mat <- apply(path_edge_df, 2, function(x) getOneRowName(x))
+  path_edge_mat <- apply(path_edge_df, 2, function(x) getOneRowName(one_row=x, orig_df=orig_node_df))
   edge_df <- as.data.frame(path_edge_mat)
   path_nodes <- unique(c(path_edge_df$source, path_edge_df$target))
   node_df <- subset(orig_node_df, name %in% path_nodes)
