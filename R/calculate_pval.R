@@ -1,6 +1,6 @@
 # calculate_pval.R
 # Calculate p value of the graph,
-# By checking empirical test
+# By using empirical test
 
 library(foreach)
 library(doParallel)
@@ -9,18 +9,8 @@ numCores <- detectCores()-1
 numCores
 registerDoParallel(numCores)  # use multicore, set to the number of our cores
 
-
 # Just test if it runs
 foreach(icount(1000), .combine='+') %dopar% rnorm(4)
-#??
-#cl <- makeCluster(numCores) 
-# registerDoParallel(cl)
-
-# We match the number of genes, those with weight less than 0.8 and greater than 0.8
-# 'g', "merged_edge", "merged_node" will be specified before running this script
-# g <- nonneuro_g
-# merged_edge <- nonneuro_merged_edge
-# merged_node <- nonneuro_merged_node
 
 ############################################################
 # First, using parallel computing, run with threshold 0.9, in order to obtain the list of 
@@ -82,8 +72,7 @@ pval_df <- data.frame(wpid=names(res_pvals),
                       description=sorted_wpid2name[names(res_pvals),]$name,
                       stringsAsFactors = F)
 # write.csv(pval_df, file.path(RESULT_DIR, paste("neuro_pval_df_", length(res_pvals), "_2021.csv", sep="")), row.names = FALSE)
-write.csv(pval_df, file.path(RESULT_DIR, paste("nonneuro_pval_df_", length(res_pvals), "_2021.csv", sep="")), row.names = FALSE)
+# write.csv(pval_df, file.path(RESULT_DIR, paste("nonneuro_pval_df_", length(res_pvals), "_2021.csv", sep="")), row.names = FALSE)
 
 # Stop cluster
-#stopCluster(cl)
 stopImplicitCluster()
